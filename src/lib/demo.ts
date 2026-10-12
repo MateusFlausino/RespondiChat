@@ -1,0 +1,151 @@
+import type { DashboardData } from "./types";
+export function demoData(): DashboardData {
+  const now = Date.now();
+  const ago = (minutes: number) =>
+    new Date(now - minutes * 60_000).toISOString();
+  const p1 = "10000000-0000-4000-8000-000000000001",
+    p2 = "10000000-0000-4000-8000-000000000002",
+    p3 = "10000000-0000-4000-8000-000000000003";
+  const a1 = "20000000-0000-4000-8000-000000000001",
+    a2 = "20000000-0000-4000-8000-000000000002",
+    a3 = "20000000-0000-4000-8000-000000000003";
+  return {
+    products: [
+      {
+        id: p1,
+        name: "Bolsa tiracolo",
+        url: "https://example.com/bolsa",
+        price: "R$ 129,90",
+        category: "Moda",
+        emoji: "👜",
+      },
+      {
+        id: p2,
+        name: "Sérum facial",
+        url: "https://example.com/serum",
+        price: "R$ 59,90",
+        category: "Beleza",
+        emoji: "🧴",
+      },
+      {
+        id: p3,
+        name: "Fone sem fio",
+        url: "https://example.com/fone",
+        price: "R$ 89,90",
+        category: "Tecnologia",
+        emoji: "🎧",
+      },
+    ],
+    automations: [
+      {
+        id: a1,
+        name: "Achadinhos da semana",
+        mediaId: "180000000000001",
+        postUrl: "https://www.instagram.com/reel/DEMO_SEMANA/",
+        postLabel: "Meus favoritos da semana ✨",
+        keywords: ["QUERO", "LINK"],
+        matchMode: "word",
+        message:
+          "Oi, {{nome}}! Separei os links dos achadinhos do vídeo para você ✨\n\n{{produtos}}",
+        productIds: [p1, p3],
+        active: true,
+        createdAt: ago(4000),
+      },
+      {
+        id: a2,
+        name: "Rotina de skincare",
+        mediaId: "180000000000002",
+        postUrl: "https://www.instagram.com/p/DEMO_SKINCARE/",
+        postLabel: "Meu cuidado favorito de todos os dias",
+        keywords: ["SKINCARE"],
+        matchMode: "word",
+        message:
+          "Oi, {{nome}}! Esse é o sérum que mostrei no post 💛\n\n{{produtos}}",
+        productIds: [p2],
+        active: true,
+        createdAt: ago(6000),
+      },
+      {
+        id: a3,
+        name: "Favoritos de moda",
+        mediaId: "180000000000003",
+        postUrl: "https://www.instagram.com/reel/DEMO_MODA/",
+        postLabel: "Uma bolsa, várias combinações",
+        keywords: ["BOLSA"],
+        matchMode: "exact",
+        message: "Aqui está o link da bolsa, {{nome}}! 👜\n\n{{produtos}}",
+        productIds: [p1],
+        active: false,
+        createdAt: ago(8000),
+      },
+    ],
+    deliveries: [
+      {
+        id: "30000000-0000-4000-8000-000000000001",
+        automationId: a1,
+        automationName: "Achadinhos da semana",
+        username: "ana.exemplo",
+        status: "sent",
+        message:
+          "Oi, ana.exemplo! Estes são os links dos produtos de demonstração.",
+        error: null,
+        createdAt: ago(3),
+      },
+      {
+        id: "30000000-0000-4000-8000-000000000002",
+        automationId: a2,
+        automationName: "Rotina de skincare",
+        username: "bia.exemplo",
+        status: "sent",
+        message: "Aqui está o sérum de demonstração 💛",
+        error: null,
+        createdAt: ago(22),
+      },
+      {
+        id: "30000000-0000-4000-8000-000000000003",
+        automationId: a1,
+        automationName: "Achadinhos da semana",
+        username: "carla.exemplo",
+        status: "queued",
+        message: "Mensagem de demonstração aguardando na fila.",
+        error: null,
+        createdAt: ago(30),
+      },
+      {
+        id: "30000000-0000-4000-8000-000000000004",
+        automationId: a2,
+        automationName: "Rotina de skincare",
+        username: "dani.exemplo",
+        status: "failed",
+        message: "Mensagem de demonstração.",
+        error: "Exemplo de falha: reconecte o Instagram.",
+        createdAt: ago(90),
+      },
+      ...[1, 2, 3, 4, 5, 6].map((day, i) => ({
+        id: `30000000-0000-4000-8000-00000000001${i}`,
+        automationId: a1,
+        automationName: "Achadinhos da semana",
+        username: "visitante.exemplo",
+        status: "sent" as const,
+        message: "Mensagem de exemplo.",
+        error: null,
+        createdAt: ago(day * 1440),
+      })),
+    ],
+    account: {
+      username: "michellefmkt",
+      connected: false,
+      expiresAt: null,
+      subscribed: false,
+    },
+    daily: [],
+    totals: { sent: 8, queued: 1, failed: 1, uncertain: 0 },
+    config: {
+      database: false,
+      instagram: false,
+      webhook: false,
+      appUrl: "http://localhost:3000",
+      demo: true,
+    },
+  };
+}
