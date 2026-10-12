@@ -154,3 +154,8 @@ tests/                   testes de regras, segurança e integração
 ```
 
 Esta versão atende **uma conta de Instagram e um administrador**. Não implementa atendimento por IA, sequência de follow-up, múltiplos clientes, leitura de DMs recebidas, processamento de stories ou checkout. O envio começa a partir de comentários nos posts/Reels.
+# Acesso próprio da Michelle
+
+O painel aceita dois acessos independentes para o mesmo perfil e suas automações: o administrador e a Michelle. Configure `MICHELLE_PASSWORD_HASH` em Production com um hash scrypt no mesmo formato de `ADMIN_PASSWORD_HASH` e faça um novo deploy. Ela entra em `/michelle/login`, com usuário `michelle` e sua própria senha, e usa **Conectar Instagram** nas configurações. A senha do painel é diferente da senha do Instagram; a autorização do perfil acontece somente na tela oficial da Meta.
+
+Ambos os acessos podem gerenciar os produtos, automações e a conexão do único perfil autorizado. Não há cadastro público. Para revogar o acesso da Michelle, remova sua variável e faça novo deploy. Trocar o hash invalida suas sessões anteriores; esta atualização também exige novo login do administrador. Não use `michelle` como `ADMIN_USERNAME`.

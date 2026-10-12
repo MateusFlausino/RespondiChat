@@ -1,11 +1,11 @@
 import { cookies } from "next/headers";
 import { randomBytes } from "node:crypto";
-import { apiError, appUrl, requireAdmin } from "@/lib/auth";
+import { apiError, appUrl, requireUser } from "@/lib/auth";
 import { authorizationUrl } from "@/lib/instagram";
 import { secret, sign } from "@/lib/security";
 export async function GET() {
   try {
-    await requireAdmin();
+    await requireUser();
     const state = randomBytes(32).toString("hex");
     (await cookies()).set(
       "respondi_oauth",

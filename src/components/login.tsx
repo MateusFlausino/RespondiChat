@@ -6,7 +6,7 @@ import {
   LockKeyhole,
   LoaderCircle,
 } from "lucide-react";
-export default function Login({ configured }: { configured: boolean }) {
+export default function Login({ configured, michelle = false }: { configured: boolean; michelle?: boolean }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   async function submit(event: React.FormEvent<HTMLFormElement>) {
@@ -64,13 +64,11 @@ export default function Login({ configured }: { configured: boolean }) {
         <span className="icon-tile">
           <LockKeyhole size={24} />
         </span>
-        <h2>Bom ter você por aqui.</h2>
-        <p>Entre para cuidar das suas automações.</p>
+        <h2>{michelle ? "Olá, Michelle." : "Bom ter você por aqui."}</h2>
+        <p>{michelle ? "Entre para conectar seu Instagram e cuidar das suas automações." : "Entre para cuidar das suas automações."}</p>
         {!configured && (
           <div className="notice warning">
-            A configuração inicial está pendente. Defina as variáveis do
-            administrador e do banco na Vercel, depois execute a migração
-            indicada no README.
+            {michelle ? "Seu acesso ainda não foi ativado. Peça ao responsável pelo painel para concluir a configuração." : "A configuração inicial está pendente. Peça ao responsável pelo painel para concluir a configuração."}
           </div>
         )}
         <form onSubmit={submit}>
@@ -80,7 +78,8 @@ export default function Login({ configured }: { configured: boolean }) {
               name="username"
               autoComplete="username"
               required
-              defaultValue="admin"
+              defaultValue={michelle ? "michelle" : ""}
+              readOnly={michelle}
             />
           </label>
           <label>

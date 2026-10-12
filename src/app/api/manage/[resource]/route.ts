@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { after } from "next/server";
-import { apiError, appUrl, HttpError, requireAdmin } from "@/lib/auth";
+import { apiError, appUrl, HttpError, requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import {
   automationSchema,
@@ -19,7 +19,7 @@ export const dynamic = "force-dynamic";
 type Context = { params: Promise<{ resource: string }> };
 export async function GET(request: Request, context: Context) {
   try {
-    await requireAdmin();
+    await requireUser();
     const { resource } = await context.params;
     if (resource !== "dashboard")
       throw new HttpError(404, "Recurso não encontrado.");
@@ -48,7 +48,7 @@ export async function GET(request: Request, context: Context) {
 }
 export async function POST(request: Request, context: Context) {
   try {
-    await requireAdmin(request);
+    await requireUser(request);
     const { resource } = await context.params;
     if (resource === "queue") {
       after(async () => {
@@ -170,7 +170,7 @@ export async function POST(request: Request, context: Context) {
 }
 export async function DELETE(request: Request, context: Context) {
   try {
-    await requireAdmin(request);
+    await requireUser(request);
     const { resource } = await context.params;
     const parsed = z
       .object({ id: z.string().uuid() })

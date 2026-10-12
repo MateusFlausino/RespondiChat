@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { appUrl, requireAdmin } from "@/lib/auth";
+import { appUrl, requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { exchangeCode, subscribe } from "@/lib/instagram";
 import { encrypt, equal, secret, verify } from "@/lib/security";
@@ -11,7 +11,7 @@ export async function GET(request: Request) {
   const token = jar.get("respondi_oauth")?.value;
   jar.delete("respondi_oauth");
   try {
-    await requireAdmin();
+    await requireUser();
     const url = new URL(request.url);
     const state = verify<{ state: string; purpose: string; exp: number }>(
       token,

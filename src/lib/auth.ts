@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { randomBytes } from "node:crypto";
 import { equal, secret, sign, verify } from "./security";
+import { credentialVersion, validSessionUser, type PanelUser } from "./panel-users";
 export function appUrl(): string {
   const configured = process.env.APP_URL;
   if (!configured) throw new Error("Configure APP_URL com a URL do painel.");
@@ -17,17 +18,13 @@ export function demoEnabled(): boolean {
 export async function authenticated(): Promise<boolean> {
   if (!process.env.SESSION_SECRET) return false;
   const token = (await cookies()).get("respondi_session")?.value;
-  const value = verify<{ exp: number; user: string; purpose: string }>(
+  const value = verify<{ exp: number; user: string; purpose: string; credentialVersion?: string }>(
     token,
     secret("SESSION_SECRET"),
   );
-  return (
-    !!value &&
-    value.purpose === "session" &&
-    value.user === (process.env.ADMIN_USERNAME || "admin")
-  );
+  return !!value && validSessionUser(value);
 }
-export async function requireAdmin(request?: Request): Promise<void> {
+export async function requireUser(request?: Request): Promise<void> {
   if (!(await authenticated()))
     throw new HttpError(401, "Faça login para continuar.");
   if (
@@ -37,11 +34,12 @@ export async function requireAdmin(request?: Request): Promise<void> {
   )
     throw new HttpError(403, "Origem da solicitação inválida.");
 }
-export async function createSession() {
+export async function createSession(user: PanelUser) {
   const value = sign(
     {
       purpose: "session",
-      user: process.env.ADMIN_USERNAME || "admin",
+      user: user.username,
+      credentialVersion: credentialVersion(user),
       nonce: randomBytes(16).toString("hex"),
       exp: Date.now() + 12 * 3600_000,
     },
