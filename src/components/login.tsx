@@ -6,7 +6,7 @@ import {
   LockKeyhole,
   LoaderCircle,
 } from "lucide-react";
-export default function Login({ configured, michelle = false }: { configured: boolean; michelle?: boolean }) {
+export default function Login({ configured, person }: { configured: boolean; person?: { name: string; username: string } }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   async function submit(event: React.FormEvent<HTMLFormElement>) {
@@ -64,11 +64,11 @@ export default function Login({ configured, michelle = false }: { configured: bo
         <span className="icon-tile">
           <LockKeyhole size={24} />
         </span>
-        <h2>{michelle ? "Olá, Michelle." : "Bom ter você por aqui."}</h2>
-        <p>{michelle ? "Entre para conectar seu Instagram e cuidar das suas automações." : "Entre para cuidar das suas automações."}</p>
+        <h2>{person ? `Olá, ${person.name}.` : "Bom ter você por aqui."}</h2>
+        <p>{person ? "Entre para conectar o Instagram e cuidar das automações." : "Entre para cuidar das suas automações."}</p>
         {!configured && (
           <div className="notice warning">
-            {michelle ? "Seu acesso ainda não foi ativado. Peça ao responsável pelo painel para concluir a configuração." : "A configuração inicial está pendente. Peça ao responsável pelo painel para concluir a configuração."}
+            {person ? "Seu acesso ainda não foi ativado. Peça ao responsável pelo painel para concluir a configuração." : "A configuração inicial está pendente. Peça ao responsável pelo painel para concluir a configuração."}
           </div>
         )}
         <form onSubmit={submit}>
@@ -78,8 +78,8 @@ export default function Login({ configured, michelle = false }: { configured: bo
               name="username"
               autoComplete="username"
               required
-              defaultValue={michelle ? "michelle" : ""}
-              readOnly={michelle}
+              defaultValue={person?.username || ""}
+              readOnly={!!person}
             />
           </label>
           <label>

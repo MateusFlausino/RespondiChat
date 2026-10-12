@@ -8,6 +8,8 @@ export function panelUsers(env: Record<string, string | undefined> = process.env
     users.push({ username: env.ADMIN_USERNAME || "admin", passwordHash: env.ADMIN_PASSWORD_HASH });
   if (env.MICHELLE_PASSWORD_HASH && !users.some((user) => user.username === "michelle"))
     users.push({ username: "michelle", passwordHash: env.MICHELLE_PASSWORD_HASH });
+  if (env.MATEUS_PASSWORD_HASH && !users.some((user) => user.username === "mateus"))
+    users.push({ username: "mateus", passwordHash: env.MATEUS_PASSWORD_HASH });
   return users;
 }
 export function credentialVersion(user: PanelUser): string {

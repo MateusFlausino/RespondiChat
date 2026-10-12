@@ -6,6 +6,14 @@ function hash(password: string, salt = "a".repeat(32)) {
   return `scrypt:${salt}:${scryptSync(password, salt, 64).toString("hex")}`;
 }
 const users = panelUsers({ ADMIN_PASSWORD_HASH: hash("admin-test-password"), MICHELLE_PASSWORD_HASH: hash("michelle-test-password") });
+test("Mateus usa senha própria sem compartilhar o acesso da Michelle", () => {
+  const allUsers = panelUsers({ ADMIN_PASSWORD_HASH: users[0].passwordHash, MICHELLE_PASSWORD_HASH: users[1].passwordHash, MATEUS_PASSWORD_HASH: hash("mateus-test-password") });
+  assert.equal(matchPanelUser("mateus", "mateus-test-password", allUsers)?.username, "mateus");
+  assert.equal(matchPanelUser("mateus", "michelle-test-password", allUsers), null);
+  assert.equal(matchPanelUser("michelle", "mateus-test-password", allUsers), null);
+  const user = allUsers.find((entry) => entry.username === "mateus")!;
+  assert.equal(validSessionUser({ user: "mateus", purpose: "session", credentialVersion: credentialVersion(user) }, users), false);
+});
 test("Michelle entra com sua própria senha e nunca com a senha do admin", () => {
   assert.equal(matchPanelUser("michelle", "michelle-test-password", users)?.username, "michelle");
   assert.equal(matchPanelUser("admin", "admin-test-password", users)?.username, "admin");

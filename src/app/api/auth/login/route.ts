@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     }>(`INSERT INTO login_attempts(key,window_start,attempts) VALUES($1,now(),1)
       ON CONFLICT(key) DO UPDATE SET attempts=CASE WHEN login_attempts.window_start<now()-interval '15 minutes' THEN 1 ELSE login_attempts.attempts+1 END,
       window_start=CASE WHEN login_attempts.window_start<now()-interval '15 minutes' THEN now() ELSE login_attempts.window_start END RETURNING attempts`,
-      [parsed.data.username === "michelle" ? "michelle" : "admin"]);
+      [users.some((user) => user.username === parsed.data.username) ? parsed.data.username : "admin"]);
     if (attempts.rows[0].attempts > 10)
       throw new HttpError(429, "Muitas tentativas. Aguarde 15 minutos.");
     const user = matchPanelUser(parsed.data.username, parsed.data.password, users);
