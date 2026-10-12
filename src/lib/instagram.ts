@@ -54,6 +54,7 @@ export function authorizationFailureReason(value: unknown): string {
   if (/different app|another app|app.*mismatch|does not match.*app/i.test(raw)) return "app_mismatch";
   if (/permission|insufficient.*role|not authorized/i.test(raw)) return "permissions";
   if (/grant.type|missing.*parameter|required.*parameter/i.test(raw)) return "request_parameters";
+  if (/unsupported request\s*-\s*method type:\s*get|method\s+get\s+(?:is\s+)?not supported/i.test(raw)) return "unsupported_get_method";
   if (/unsupported.*request|unsupported.*get/i.test(raw)) return "unsupported_request";
   return "unknown";
 }
@@ -172,15 +173,27 @@ export async function exchangeCode(
     client_secret: secret,
     access_token: short.access_token,
   }).toString();
-  const longResponse = await fetch(url, {
+  let longResponse = await fetch(url, {
     cache: "no-store",
     signal: AbortSignal.timeout(10_000),
   });
-  const long = (await longResponse.json()) as {
+  type LongToken = {
     access_token?: string;
     expires_in?: number;
     error?: { code?: number };
   };
+  let long = (await longResponse.json()) as LongToken;
+  // Some Meta responses explicitly reject GET for this exchange. Retry only
+  // that definitive rejection, using the same endpoint and credentials.
+  if (!longResponse.ok && authorizationFailureReason(long) === "unsupported_get_method") {
+    longResponse = await fetch("https://graph.instagram.com/access_token", {
+      method: "POST",
+      body: new URLSearchParams({ grant_type: "ig_exchange_token", client_secret: secret, access_token: short.access_token }),
+      cache: "no-store",
+      signal: AbortSignal.timeout(10_000),
+    });
+    long = (await longResponse.json()) as LongToken;
+  }
   if (!longResponse.ok || !long.access_token || !long.expires_in)
     throw new InstagramAuthorizationError("long_token", Number(long.error?.code) || 0, longResponse.status, authorizationFailureReason(long));
   type Profile = { id?: string; user_id: string; username: string };

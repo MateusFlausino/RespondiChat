@@ -11,10 +11,40 @@ import {
   authorizationFailureReason,
 } from "../src/lib/instagram";
 test("diagnóstico da Meta retorna categorias fixas e nunca mensagens com segredos", () => {
+  assert.equal(authorizationFailureReason({ error: { message: "Unsupported request - method type: get" } }), "unsupported_get_method");
   assert.equal(authorizationFailureReason({ error: { message: "Invalid client secret: private-secret" } }), "client_credentials");
   assert.equal(authorizationFailureReason({ error: { message: "Invalid OAuth access token: private-token" } }), "invalid_token");
   assert.equal(authorizationFailureReason({ error: { message: "Unsupported get request for private-id" } }), "unsupported_request");
   assert.equal(authorizationFailureReason({ error: { message: "private-secret private-token" } }), "unknown");
+});
+test("troca de token tenta POST somente quando a Meta rejeita explicitamente GET", async () => {
+  const original = globalThis.fetch;
+  process.env.APP_URL = "https://example.com";
+  process.env.INSTAGRAM_APP_ID = "123";
+  process.env.INSTAGRAM_APP_SECRET = "secret";
+  try {
+    for (const rejectGet of [true, false]) {
+      let exchangeCalls = 0;
+      globalThis.fetch = async (input, options) => {
+        const url = String(input);
+        if (url.includes("api.instagram.com")) return Response.json({ access_token: "short", user_id: "123" });
+        if (url.includes("/access_token")) {
+          exchangeCalls++;
+          if (options?.method !== "POST") return Response.json({ error: { code: 100, message: rejectGet ? "Unsupported request - method type: get" : "Unsupported get request. Object does not exist." } }, { status: 400 });
+          assert.equal(String(input), "https://graph.instagram.com/access_token");
+          const params = new URLSearchParams(String(options.body));
+          assert.equal(params.get("grant_type"), "ig_exchange_token");
+          assert.equal(params.get("access_token"), "short");
+          assert.equal(params.get("client_secret"), "secret");
+          return Response.json({ access_token: "long", expires_in: 5184000 });
+        }
+        return Response.json({ user_id: "123", username: "michellefmkt" });
+      };
+      if (rejectGet) assert.equal((await exchangeCode("code")).token, "long");
+      else await assert.rejects(() => exchangeCode("code"), InstagramAuthorizationError);
+      assert.equal(exchangeCalls, rejectGet ? 2 : 1);
+    }
+  } finally { globalThis.fetch = original; }
 });
 test("OAuth identifica a etapa e o código sem expor dados do provedor", async () => {
   const original = globalThis.fetch;

@@ -202,6 +202,7 @@ export default function Dashboard({
       permissions: "O Instagram não liberou as permissões necessárias. Confira o aceite de testadora e autorize os acessos solicitados.",
       request_parameters: "O Instagram rejeitou a solicitação de conexão. O responsável pelo painel precisa revisar a integração.",
       unsupported_request: "O Instagram não aceitou a troca da autorização. O responsável pelo painel precisa revisar a integração.",
+      unsupported_get_method: "O Instagram recusou o método usado na troca da autorização. O responsável pelo painel precisa revisar a integração.",
     };
     const failureMessages: Record<string, string> = {
       session: "Sua sessão do painel expirou. Entre novamente e inicie a conexão.",
