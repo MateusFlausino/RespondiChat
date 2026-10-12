@@ -17,7 +17,7 @@ test("diagnóstico da Meta retorna categorias fixas e nunca mensagens com segred
   assert.equal(authorizationFailureReason({ error: { message: "Unsupported get request for private-id" } }), "unsupported_request");
   assert.equal(authorizationFailureReason({ error: { message: "private-secret private-token" } }), "unknown");
 });
-test("troca de token tenta POST somente quando a Meta rejeita explicitamente GET", async () => {
+test("troca de token tenta POST uma vez para rejeições de GET com código 100", async () => {
   const original = globalThis.fetch;
   process.env.APP_URL = "https://example.com";
   process.env.INSTAGRAM_APP_ID = "123";
@@ -40,9 +40,31 @@ test("troca de token tenta POST somente quando a Meta rejeita explicitamente GET
         }
         return Response.json({ user_id: "123", username: "michellefmkt" });
       };
-      if (rejectGet) assert.equal((await exchangeCode("code")).token, "long");
-      else await assert.rejects(() => exchangeCode("code"), InstagramAuthorizationError);
-      assert.equal(exchangeCalls, rejectGet ? 2 : 1);
+      assert.equal((await exchangeCode("code")).token, "long");
+      assert.equal(exchangeCalls, 2);
+    }
+  } finally { globalThis.fetch = original; }
+});
+test("troca não repete falhas de credencial, permissão, servidor ou a rejeição do POST", async () => {
+  const original = globalThis.fetch;
+  process.env.APP_URL = "https://example.com";
+  process.env.INSTAGRAM_APP_ID = "123";
+  process.env.INSTAGRAM_APP_SECRET = "secret";
+  try {
+    for (const failure of [
+      { code: 100, status: 400, message: "Invalid client secret", calls: 1 },
+      { code: 10, status: 400, message: "Permission denied", calls: 1 },
+      { code: 100, status: 503, message: "Unsupported get request", calls: 1 },
+      { code: 100, status: 400, message: "Unsupported get request", calls: 2 },
+    ]) {
+      let calls = 0;
+      globalThis.fetch = async (input) => {
+        if (String(input).includes("api.instagram.com")) return Response.json({ access_token: "short", user_id: "123" });
+        calls++;
+        return Response.json({ error: { code: failure.code, message: failure.message } }, { status: failure.status });
+      };
+      await assert.rejects(() => exchangeCode("code"), InstagramAuthorizationError);
+      assert.equal(calls, failure.calls);
     }
   } finally { globalThis.fetch = original; }
 });

@@ -183,9 +183,12 @@ export async function exchangeCode(
     error?: { code?: number };
   };
   let long = (await longResponse.json()) as LongToken;
-  // Some Meta responses explicitly reject GET for this exchange. Retry only
-  // that definitive rejection, using the same endpoint and credentials.
-  if (!longResponse.ok && authorizationFailureReason(long) === "unsupported_get_method") {
+  // Meta can reject GET with either an explicit method error or generic code
+  // 100. Retry this definitive 400 once with the same token and credentials.
+  // Credential, permission and transient failures must not trigger this retry.
+  const exchangeReason = authorizationFailureReason(long);
+  if (longResponse.status === 400 && long.error?.code === 100 &&
+      ["unsupported_get_method", "unsupported_request"].includes(exchangeReason)) {
     longResponse = await fetch("https://graph.instagram.com/access_token", {
       method: "POST",
       body: new URLSearchParams({ grant_type: "ig_exchange_token", client_secret: secret, access_token: short.access_token }),
