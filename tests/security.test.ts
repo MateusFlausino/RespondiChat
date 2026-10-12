@@ -7,6 +7,7 @@ import {
   sign,
   verify,
   validWebhook,
+  validInstagramWebhook,
   verifyPassword,
 } from "../src/lib/security";
 import { parseSignedRequest } from "../src/lib/deletion";
@@ -38,6 +39,20 @@ test("webhooks validam o corpo bruto e nunca aceitam assinatura ausente", () => 
   assert.equal(validWebhook(body + " ", signature, key), false);
   assert.equal(validWebhook(body, null, key), false);
   assert.equal(validWebhook(body, signature, ""), false);
+});
+test("Instagram aceita as duas chaves configuradas e rejeita assinaturas inválidas", () => {
+  const body = '{"object":"instagram"}';
+  const secrets = { instagram: "instagram-product-secret", meta: "meta-root-secret" };
+  const signature = (key: string) => `sha256=${createHmac("sha256", key).update(body).digest("hex")}`;
+  for (const key of Object.values(secrets)) {
+    assert.equal(validInstagramWebhook(body, signature(key), secrets), true);
+    assert.equal(validInstagramWebhook(body + " ", signature(key), secrets), false);
+  }
+  assert.equal(validInstagramWebhook(body, signature(secrets.instagram), { instagram: secrets.instagram }), true);
+  assert.equal(validInstagramWebhook(body, signature("unrelated-app"), secrets), false);
+  assert.equal(validInstagramWebhook(body, null, secrets), false);
+  assert.equal(validInstagramWebhook(body, "sha256=invalid", secrets), false);
+  assert.equal(validInstagramWebhook(body, signature(secrets.meta), {}), false);
 });
 test("a senha usa scrypt e rejeita hashes inválidos", () => {
   const salt = randomBytes(16).toString("hex");

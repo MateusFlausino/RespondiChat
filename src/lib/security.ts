@@ -99,3 +99,12 @@ export function validWebhook(
     `sha256=${createHmac("sha256", appSecret).update(raw).digest("hex")}`,
   );
 }
+export function validInstagramWebhook(
+  raw: string,
+  signature: string | null,
+  secrets: { instagram?: string; meta?: string },
+): boolean {
+  return [secrets.instagram, secrets.meta].some(
+    (key) => Boolean(key) && validWebhook(raw, signature, key!),
+  );
+}

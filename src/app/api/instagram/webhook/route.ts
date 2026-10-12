@@ -1,5 +1,5 @@
 import { after } from "next/server";
-import { equal, validWebhook } from "@/lib/security";
+import { equal, validInstagramWebhook } from "@/lib/security";
 import { extractComments } from "@/lib/domain";
 import { enqueueComment } from "@/lib/repository";
 import { processQueue } from "@/lib/worker";
@@ -26,10 +26,13 @@ export async function POST(request: Request) {
   if (Buffer.byteLength(raw) > 1_000_000)
     return new Response("Payload too large", { status: 413 });
   if (
-    !validWebhook(
+    !validInstagramWebhook(
       raw,
       request.headers.get("x-hub-signature-256"),
-      process.env.META_APP_SECRET ?? "",
+      {
+        instagram: process.env.INSTAGRAM_APP_SECRET,
+        meta: process.env.META_APP_SECRET,
+      },
     )
   )
     return new Response("Forbidden", { status: 403 });
