@@ -8,7 +8,14 @@ import {
   providerJson,
   singleObject,
   InstagramAuthorizationError,
+  authorizationFailureReason,
 } from "../src/lib/instagram";
+test("diagnóstico da Meta retorna categorias fixas e nunca mensagens com segredos", () => {
+  assert.equal(authorizationFailureReason({ error: { message: "Invalid client secret: private-secret" } }), "client_credentials");
+  assert.equal(authorizationFailureReason({ error: { message: "Invalid OAuth access token: private-token" } }), "invalid_token");
+  assert.equal(authorizationFailureReason({ error: { message: "Unsupported get request for private-id" } }), "unsupported_request");
+  assert.equal(authorizationFailureReason({ error: { message: "private-secret private-token" } }), "unknown");
+});
 test("OAuth identifica a etapa e o código sem expor dados do provedor", async () => {
   const original = globalThis.fetch;
   process.env.APP_URL = "https://example.com";

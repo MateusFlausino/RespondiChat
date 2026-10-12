@@ -38,9 +38,24 @@ export class MetaError extends Error {
   }
 }
 export class InstagramAuthorizationError extends Error {
-  constructor(public stage: "short_token" | "long_token" | "profile", public code: number, public status: number) {
+  constructor(public stage: "short_token" | "long_token" | "profile", public code: number, public status: number, public reason = "unknown") {
     super(`Instagram authorization failed at ${stage} (HTTP ${status}, code ${code}).`);
   }
+}
+export function authorizationFailureReason(value: unknown): string {
+  if (!value || typeof value !== "object") return "unknown";
+  const data = value as { error?: { message?: unknown }; error_message?: unknown };
+  const raw = data.error?.message ?? data.error_message;
+  if (typeof raw !== "string") return "unknown";
+  // Match only fixed categories. Never return or log the provider's message.
+  if (/client.?secret|app.?secret|invalid client|client id/i.test(raw)) return "client_credentials";
+  if (/invalid.*access token|cannot parse.*access token|malformed.*token|invalid oauth access token/i.test(raw)) return "invalid_token";
+  if (/expired|session has been invalidated/i.test(raw)) return "expired_token";
+  if (/different app|another app|app.*mismatch|does not match.*app/i.test(raw)) return "app_mismatch";
+  if (/permission|insufficient.*role|not authorized/i.test(raw)) return "permissions";
+  if (/grant.type|missing.*parameter|required.*parameter/i.test(raw)) return "request_parameters";
+  if (/unsupported.*request|unsupported.*get/i.test(raw)) return "unsupported_request";
+  return "unknown";
 }
 export function providerJson(text: string): unknown {
   // Preserve large numeric identifiers, which cannot safely pass through a JS Number.
@@ -149,7 +164,7 @@ export async function exchangeCode(
   );
   if (!response.ok || !short.access_token) {
     const failure = short as Short & { code?: number; error?: { code?: number } };
-    throw new InstagramAuthorizationError("short_token", Number(failure.error?.code ?? failure.code) || 0, response.status);
+    throw new InstagramAuthorizationError("short_token", Number(failure.error?.code ?? failure.code) || 0, response.status, authorizationFailureReason(short));
   }
   const url = new URL("https://graph.instagram.com/access_token");
   url.search = new URLSearchParams({
@@ -167,7 +182,7 @@ export async function exchangeCode(
     error?: { code?: number };
   };
   if (!longResponse.ok || !long.access_token || !long.expires_in)
-    throw new InstagramAuthorizationError("long_token", Number(long.error?.code) || 0, longResponse.status);
+    throw new InstagramAuthorizationError("long_token", Number(long.error?.code) || 0, longResponse.status, authorizationFailureReason(long));
   type Profile = { id?: string; user_id: string; username: string };
   const profile = singleObject<Profile>(
     await graph<Profile | { data: Profile[] }>("me", long.access_token, {

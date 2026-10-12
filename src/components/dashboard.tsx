@@ -194,6 +194,15 @@ export default function Dashboard({
     const params = new URLSearchParams(window.location.search);
     const connection = params.get("connection");
     if (!connection) return;
+    const authorizationReasons: Record<string, string> = {
+      client_credentials: "O Instagram rejeitou as credenciais do aplicativo. Confira o ID e a chave secreta do Instagram na Vercel.",
+      invalid_token: "O Instagram rejeitou a autorização recebida. Inicie uma nova conexão; o responsável deve conferir o diagnóstico na Meta.",
+      expired_token: "A autorização do Instagram expirou. Inicie a conexão novamente.",
+      app_mismatch: "A autorização pertence a outro aplicativo. O responsável deve conferir se o ID e a chave do Instagram são do mesmo app.",
+      permissions: "O Instagram não liberou as permissões necessárias. Confira o aceite de testadora e autorize os acessos solicitados.",
+      request_parameters: "O Instagram rejeitou a solicitação de conexão. O responsável pelo painel precisa revisar a integração.",
+      unsupported_request: "O Instagram não aceitou a troca da autorização. O responsável pelo painel precisa revisar a integração.",
+    };
     const failureMessages: Record<string, string> = {
       session: "Sua sessão do painel expirou. Entre novamente e inicie a conexão.",
       short_token: "O Instagram não confirmou a autorização. Confira o aceite de testadora e as credenciais do aplicativo Meta.",
@@ -210,7 +219,7 @@ export default function Dashboard({
       invalid_state: "A autorização expirou. Inicie a conexão novamente.",
       disconnect_first: "Desconecte a conta anterior antes de trocar o perfil.",
       failed:
-        failureMessages[params.get("stage") ?? ""] ?? "A conexão não foi concluída. O responsável pelo painel deve conferir o diagnóstico da autorização.",
+        authorizationReasons[params.get("reason") ?? ""] ?? failureMessages[params.get("stage") ?? ""] ?? "A conexão não foi concluída. O responsável pelo painel deve conferir o diagnóstico da autorização.",
       missing_code: "O Instagram não retornou o código de autorização.",
     };
     notify(

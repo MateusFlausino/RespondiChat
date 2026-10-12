@@ -70,10 +70,12 @@ export async function GET(request: Request) {
       stage,
       providerCode: provider?.code ?? 0,
       providerStatus: provider?.status ?? 0,
+      reason: error instanceof InstagramAuthorizationError ? error.reason : "unknown",
     });
     const target = new URL(origin);
     target.searchParams.set("connection", "failed");
     target.searchParams.set("stage", stage);
+    if (error instanceof InstagramAuthorizationError) target.searchParams.set("reason", error.reason);
     return Response.redirect(target, 302);
   }
 }
