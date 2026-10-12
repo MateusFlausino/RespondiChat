@@ -56,7 +56,7 @@ test("Mateus e Michelle têm produtos, posts, histórico e tokens separados", as
 });
 test("cada login autoriza somente o seu perfil de Instagram",()=>{
   assert.equal(instagramForUser("mateus"),"mf.luminarias3d");
-  assert.equal(instagramForUser("michelle"),"michellefmkt");
+  assert.equal(instagramForUser("michellefmkt"),"michellefmkt");
   assert.equal(schemaForUser("mateus"),"mf_luminarias3d");
-  assert.equal(schemaForUser("michelle"),"public");
+  assert.equal(schemaForUser("michellefmkt"),"public");
 });

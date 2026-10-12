@@ -4,9 +4,9 @@ import { redirect } from "next/navigation";
 export const dynamic = "force-dynamic";
 export default async function MichelleLoginPage() {
   if (await authenticated()) redirect("/");
-  return <Login person={{ name: "Michelle", username: "michelle" }} configured={
+  return <Login person={{ name: "Michelle", username: "michellefmkt" }} configured={
     !!process.env.MICHELLE_PASSWORD_HASH && !!process.env.SESSION_SECRET &&
     !!process.env.DATABASE_URL && !!process.env.APP_URL &&
-    (process.env.ADMIN_USERNAME || "admin") !== "michelle"
+    (process.env.ADMIN_USERNAME || "admin") !== "michellefmkt"
   } />;
 }

@@ -10,28 +10,31 @@ test("Mateus usa senha própria sem compartilhar o acesso da Michelle", () => {
   const allUsers = panelUsers({ ADMIN_PASSWORD_HASH: users[0].passwordHash, MICHELLE_PASSWORD_HASH: users[1].passwordHash, MATEUS_PASSWORD_HASH: hash("mateus-test-password") });
   assert.equal(matchPanelUser("mateus", "mateus-test-password", allUsers)?.username, "mateus");
   assert.equal(matchPanelUser("mateus", "michelle-test-password", allUsers), null);
-  assert.equal(matchPanelUser("michelle", "mateus-test-password", allUsers), null);
+  assert.equal(matchPanelUser("michellefmkt", "mateus-test-password", allUsers), null);
   const user = allUsers.find((entry) => entry.username === "mateus")!;
   assert.equal(validSessionUser({ user: "mateus", purpose: "session", credentialVersion: credentialVersion(user) }, users), false);
 });
 test("Michelle entra com sua própria senha e nunca com a senha do admin", () => {
-  assert.equal(matchPanelUser("michelle", "michelle-test-password", users)?.username, "michelle");
+  assert.equal(matchPanelUser("michellefmkt", "michelle-test-password", users)?.username, "michellefmkt");
   assert.equal(matchPanelUser("admin", "admin-test-password", users)?.username, "admin");
-  assert.equal(matchPanelUser("michelle", "admin-test-password", users), null);
+  assert.equal(matchPanelUser("michellefmkt", "admin-test-password", users), null);
   assert.equal(matchPanelUser("admin", "michelle-test-password", users), null);
   assert.equal(matchPanelUser("unknown", "michelle-test-password", users), null);
+  assert.equal(matchPanelUser("michelle", "michelle-test-password", users), null);
+  const owner = users.find((user) => user.username === "michellefmkt")!;
+  assert.equal(validSessionUser({ user: "michelle", purpose: "session", credentialVersion: credentialVersion(owner) }, users), false);
 });
 test("desativar o acesso ou mudar a senha invalida a sessão da Michelle", () => {
-  const owner = users.find((user) => user.username === "michelle")!;
+  const owner = users.find((user) => user.username === "michellefmkt")!;
   const session = { user: owner.username, purpose: "session", credentialVersion: credentialVersion(owner) };
   assert.equal(validSessionUser(session, users), true);
   assert.equal(validSessionUser(session, [users[0]]), false);
   assert.equal(validSessionUser(session, [{ ...owner, passwordHash: hash("new-password") }]), false);
   assert.equal(validSessionUser({ ...session, purpose: "oauth" }, users), false);
-  assert.equal(validSessionUser({ user: "michelle", purpose: "session" }, users), false);
+  assert.equal(validSessionUser({ user: "michellefmkt", purpose: "session" }, users), false);
 });
 test("o acesso da Michelle é opcional e não pode colidir com o admin", () => {
   assert.equal(panelUsers({}).length, 0);
   assert.deepEqual(panelUsers({ ADMIN_PASSWORD_HASH: "hash" }).map((user) => user.username), ["admin"]);
-  assert.deepEqual(panelUsers({ ADMIN_USERNAME: "michelle", ADMIN_PASSWORD_HASH: "hash", MICHELLE_PASSWORD_HASH: "other" }).map((user) => user.username), ["michelle"]);
+  assert.deepEqual(panelUsers({ ADMIN_USERNAME: "michellefmkt", ADMIN_PASSWORD_HASH: "hash", MICHELLE_PASSWORD_HASH: "other" }).map((user) => user.username), ["michellefmkt"]);
 });
