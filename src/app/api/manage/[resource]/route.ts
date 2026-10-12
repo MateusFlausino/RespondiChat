@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { after } from "next/server";
 import { apiError, appUrl, HttpError, requireUser } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { dbForUser } from "@/lib/db";
+import { instagramForUser } from "@/lib/panel-users";
 import {
   automationSchema,
   matches,
@@ -19,11 +20,12 @@ export const dynamic = "force-dynamic";
 type Context = { params: Promise<{ resource: string }> };
 export async function GET(request: Request, context: Context) {
   try {
-    await requireUser();
+    const username = await requireUser();
+    const database = dbForUser(username);
     const { resource } = await context.params;
     if (resource !== "dashboard")
       throw new HttpError(404, "Recurso não encontrado.");
-    const data = await readDashboard();
+    const data = await readDashboard(database, instagramForUser(username));
     return Response.json(
       {
         ...data,
@@ -48,12 +50,13 @@ export async function GET(request: Request, context: Context) {
 }
 export async function POST(request: Request, context: Context) {
   try {
-    await requireUser(request);
+    const username = await requireUser(request);
+    const database = dbForUser(username);
     const { resource } = await context.params;
     if (resource === "queue") {
       after(async () => {
         try {
-          await processQueue();
+          await processQueue(database);
         } catch {
           console.error("Queue processing failed");
         }
@@ -61,7 +64,7 @@ export async function POST(request: Request, context: Context) {
       return Response.json({ ok: true });
     }
     if (resource === "disconnect") {
-      const accounts = await db().query<{
+      const accounts = await database.query<{
         id: string;
         encrypted_token: string;
       }>("SELECT id,encrypted_token FROM instagram_accounts LIMIT 1");
@@ -73,8 +76,8 @@ export async function POST(request: Request, context: Context) {
           decrypt(account.encrypted_token),
           { method: "DELETE" },
         ).catch(() => {});
-        await db().query("UPDATE automations SET active=false");
-        await db().query("DELETE FROM instagram_accounts WHERE id=$1", [
+        await database.query("UPDATE automations SET active=false");
+        await database.query("DELETE FROM instagram_accounts WHERE id=$1", [
           account.id,
         ]);
       }
@@ -85,13 +88,13 @@ export async function POST(request: Request, context: Context) {
       const result = productSchema.safeParse(body);
       if (!result.success)
         throw new HttpError(400, result.error.issues[0].message);
-      return Response.json({ id: await saveProduct(result.data) });
+      return Response.json({ id: await saveProduct(result.data, database) });
     }
     if (resource === "automations") {
       const result = automationSchema.safeParse(body);
       if (!result.success)
         throw new HttpError(400, result.error.issues[0].message);
-      return Response.json({ id: await saveAutomation(result.data) });
+      return Response.json({ id: await saveAutomation(result.data, database) });
     }
     if (resource === "simulate") {
       const parsed = z
@@ -103,7 +106,7 @@ export async function POST(request: Request, context: Context) {
         .safeParse(body);
       if (!parsed.success)
         throw new HttpError(400, "Dados de teste inválidos.");
-      const data = await readDashboard();
+      const data = await readDashboard(database, instagramForUser(username));
       const rule = data.automations.find((rule) => rule.id === parsed.data.id);
       if (!rule) throw new HttpError(404, "Automação não encontrada.");
       return Response.json({
@@ -123,7 +126,7 @@ export async function POST(request: Request, context: Context) {
         .object({ cursor: z.string().max(2000).optional() })
         .safeParse(body);
       if (!parsed.success) throw new HttpError(400, "Cursor inválido.");
-      const accounts = await db().query<{
+      const accounts = await database.query<{
         id: string;
         encrypted_token: string;
         expires_at: Date;
@@ -139,7 +142,7 @@ export async function POST(request: Request, context: Context) {
         parsed.data.cursor,
       );
       for (const media of result.data) {
-        await db().query(
+        await database.query(
           `INSERT INTO instagram_media(id,account_id,caption,permalink,media_type,thumbnail_url,published_at)
           VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(id) DO UPDATE SET caption=$3,permalink=$4,media_type=$5,thumbnail_url=$6,published_at=$7,synced_at=now()`,
           [
@@ -154,7 +157,7 @@ export async function POST(request: Request, context: Context) {
           ],
         );
       }
-      const stored = await db().query(
+      const stored = await database.query(
         'SELECT id,caption,permalink,media_type AS "mediaType",thumbnail_url AS "thumbnailUrl",published_at AS "publishedAt" FROM instagram_media WHERE account_id=$1 ORDER BY published_at DESC LIMIT 500',
         [account.id],
       );
@@ -170,14 +173,15 @@ export async function POST(request: Request, context: Context) {
 }
 export async function DELETE(request: Request, context: Context) {
   try {
-    await requireUser(request);
+    const username = await requireUser(request);
+    const database = dbForUser(username);
     const { resource } = await context.params;
     const parsed = z
       .object({ id: z.string().uuid() })
       .safeParse(await request.json());
     if (!parsed.success) throw new HttpError(400, "Identificador inválido.");
     if (resource === "products") {
-      const used = await db().query(
+      const used = await database.query(
         "SELECT id FROM automations WHERE product_ids @> $1::jsonb",
         [JSON.stringify([parsed.data.id])],
       );
@@ -186,9 +190,9 @@ export async function DELETE(request: Request, context: Context) {
           409,
           "Remova o produto das automações antes de excluí-lo.",
         );
-      await db().query("DELETE FROM products WHERE id=$1", [parsed.data.id]);
+      await database.query("DELETE FROM products WHERE id=$1", [parsed.data.id]);
     } else if (resource === "automations") {
-      await db().query("DELETE FROM automations WHERE id=$1", [parsed.data.id]);
+      await database.query("DELETE FROM automations WHERE id=$1", [parsed.data.id]);
     } else throw new HttpError(404, "Recurso não encontrado.");
     return Response.json({ ok: true });
   } catch (error) {

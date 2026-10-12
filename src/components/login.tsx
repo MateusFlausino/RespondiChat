@@ -58,7 +58,7 @@ export default function Login({ configured, person }: { configured: boolean; per
             Seu conteúdo continua a conversa no direct.
           </p>
         </div>
-        <span className="login-foot">Feito para @michellefmkt</span>
+        <span className="login-foot">Feito para @{person?.username === "mateus" ? "mf.luminarias3d" : "michellefmkt"}</span>
       </section>
       <section className="login-form">
         <span className="icon-tile">

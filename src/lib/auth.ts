@@ -16,16 +16,20 @@ export function demoEnabled(): boolean {
   );
 }
 export async function authenticated(): Promise<boolean> {
-  if (!process.env.SESSION_SECRET) return false;
+  return !!(await sessionUsername());
+}
+export async function sessionUsername(): Promise<string | null> {
+  if (!process.env.SESSION_SECRET) return null;
   const token = (await cookies()).get("respondi_session")?.value;
   const value = verify<{ exp: number; user: string; purpose: string; credentialVersion?: string }>(
     token,
     secret("SESSION_SECRET"),
   );
-  return !!value && validSessionUser(value);
+  return value && validSessionUser(value) ? value.user : null;
 }
-export async function requireUser(request?: Request): Promise<void> {
-  if (!(await authenticated()))
+export async function requireUser(request?: Request): Promise<string> {
+  const username = await sessionUsername();
+  if (!username)
     throw new HttpError(401, "Faça login para continuar.");
   if (
     request &&
@@ -33,6 +37,7 @@ export async function requireUser(request?: Request): Promise<void> {
     request.headers.get("origin") !== appUrl()
   )
     throw new HttpError(403, "Origem da solicitação inválida.");
+  return username;
 }
 export async function createSession(user: PanelUser) {
   const value = sign(

@@ -2,6 +2,12 @@ import { createHash } from "node:crypto";
 import { equal, verifyPassword } from "./security";
 
 export type PanelUser = { username: string; passwordHash: string };
+export function instagramForUser(username: string): string {
+  return username === "mateus" ? "mf.luminarias3d" : "michellefmkt";
+}
+export function schemaForUser(username: string): "public" | "mf_luminarias3d" {
+  return username === "mateus" ? "mf_luminarias3d" : "public";
+}
 export function panelUsers(env: Record<string, string | undefined> = process.env): PanelUser[] {
   const users: PanelUser[] = [];
   if (env.ADMIN_PASSWORD_HASH)

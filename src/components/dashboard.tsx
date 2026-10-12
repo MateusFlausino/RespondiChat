@@ -113,9 +113,13 @@ function totalCounts(deliveries: Delivery[]) {
 export default function Dashboard({
   initial,
   demo,
+  profileUsername = "michellefmkt",
+  displayName = "Michelle",
 }: {
   initial?: DashboardData;
   demo: boolean;
+  profileUsername?: string;
+  displayName?: string;
 }) {
   const [data, setData] = useState<DashboardData | null>(initial ?? null);
   const [tab, setTab] = useState<Tab>("overview");
@@ -215,7 +219,7 @@ export default function Dashboard({
     };
     const messages: Record<string, string> = {
       success: "Instagram conectado. Sincronize seus posts para começar.",
-      wrong_profile: "Autorize o perfil @michellefmkt na tela do Instagram.",
+      wrong_profile: `Autorize o perfil @${profileUsername} na tela do Instagram.`,
       denied: "A autorização foi cancelada.",
       invalid_state: "A autorização expirou. Inicie a conexão novamente.",
       disconnect_first: "Desconecte a conta anterior antes de trocar o perfil.",
@@ -229,7 +233,7 @@ export default function Dashboard({
     );
     setTab("settings");
     window.history.replaceState({}, "", "/");
-  }, [notify]);
+  }, [notify, profileUsername]);
   useEffect(() => {
     if (data && !selectedRule && data.automations.length)
       setSelectedRule(data.automations[0].id);
@@ -492,7 +496,7 @@ export default function Dashboard({
         <button className="workspace-card" onClick={() => navigate("settings")}>
           <span className="avatar">M</span>
           <span>
-            <strong>Michelle</strong>
+            <strong>{displayName}</strong>
             <small>@{data.account.username}</small>
           </span>
           <ChevronDown size={15} />
@@ -585,7 +589,7 @@ export default function Dashboard({
             <button
               className="profile-button"
               onClick={() => navigate("settings")}
-              aria-label="Configurações de Michelle"
+              aria-label={`Configurações de ${displayName}`}
             >
               M
             </button>
@@ -637,7 +641,7 @@ export default function Dashboard({
               <h1>
                 {tab === "overview" ? (
                   <>
-                    Olá, Michelle <span className="wave">✦</span>
+                    Olá, {displayName} <span className="wave">✦</span>
                   </>
                 ) : (
                   navigation.find((n) => n.id === tab)?.label
@@ -734,7 +738,7 @@ export default function Dashboard({
                       <MessageCircle size={25} />
                     </span>
                     <div>
-                      <strong>@michellefmkt</strong>
+                      <strong>@{data.account.username}</strong>
                       <p>
                         Oi! Separei os achadinhos
                         <br />
@@ -1171,7 +1175,7 @@ export default function Dashboard({
                 </div>
                 <p className="body-copy">
                   Quem administra o aplicativo Meta pode ser diferente de quem
-                  autoriza o Instagram. Sua irmã entra no perfil dela e concede
+                  autoriza o Instagram. Entre no perfil @{data.account.username} e conceda
                   as permissões para comentários e mensagens.
                 </p>
                 {data.account.expiresAt && (
@@ -1281,7 +1285,7 @@ export default function Dashboard({
                 <SetupItem
                   ready={configured}
                   title="Perfil autorizado"
-                  text="@michellefmkt conectado e eventos assinados."
+                  text={`@${data.account.username} conectado e eventos assinados.`}
                 />
                 <div className="notice">
                   A validação das permissões e um teste com uma conta externa
@@ -1844,7 +1848,7 @@ function Simulator({
           <ChevronRight size={14} className="rotate" />
           <span className="mini-avatar">M</span>
           <div>
-            <strong>michellefmkt</strong>
+            <strong>seu_perfil</strong>
             <span>Prévia do direct</span>
           </div>
           <Instagram size={17} />

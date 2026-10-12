@@ -1,5 +1,5 @@
 import { cronAuthorized } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { profileDatabases } from "@/lib/db";
 import { decrypt, encrypt } from "@/lib/security";
 import { processQueue } from "@/lib/worker";
 export const runtime = "nodejs";
@@ -9,7 +9,8 @@ export async function GET(request: Request) {
   if (!cronAuthorized(request))
     return new Response("Forbidden", { status: 403 });
   try {
-    const accounts = await db().query<{
+    const results = await Promise.all(profileDatabases().map(async (database) => {
+    const accounts = await database.query<{
       id: string;
       encrypted_token: string;
     }>(`SELECT id,encrypted_token FROM instagram_accounts
@@ -30,7 +31,7 @@ export async function GET(request: Request) {
           expires_in?: number;
         };
         if (response.ok && value.access_token && value.expires_in)
-          await db().query(
+          await database.query(
             "UPDATE instagram_accounts SET encrypted_token=$2,expires_at=$3 WHERE id=$1",
             [
               account.id,
@@ -42,21 +43,21 @@ export async function GET(request: Request) {
         console.error("Token renewal failed");
       }
     }
-    await db().query(
+    await database.query(
       "DELETE FROM deliveries WHERE created_at<now()-interval '30 days' AND status NOT IN ('queued','sending')",
     );
-    await db().query(
+    await database.query(
       "DELETE FROM rate_buckets WHERE bucket<now()-interval '2 days'",
     );
-    await db().query(
+    await database.query(
       "DELETE FROM login_attempts WHERE window_start<now()-interval '1 day'",
     );
-    await db().query(
+    await database.query(
       "DELETE FROM deletion_receipts WHERE completed_at<now()-interval '30 days'",
     );
-    return Response.json(
-      await processQueue(undefined, undefined, undefined, 30_000),
-    );
+    return processQueue(database, undefined, undefined, 20_000);
+    }));
+    return Response.json({ processed: results.reduce((sum, result) => sum + result.processed, 0) });
   } catch {
     console.error("Scheduled maintenance failed");
     return new Response("Failed", { status: 503 });

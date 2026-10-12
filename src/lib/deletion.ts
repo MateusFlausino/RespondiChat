@@ -1,5 +1,5 @@
 import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
-import { db } from "./db";
+import { db, profileDatabases } from "./db";
 export function parseSignedRequest(
   value: string,
   key: string,
@@ -30,15 +30,17 @@ export function platformSignedRequest(value: string) {
   );
 }
 export async function deleteConnection(userId: string) {
-  const matches = await db().query<{ id: string }>(
+  for (const database of profileDatabases()) {
+  const matches = await database.query<{ id: string }>(
     "SELECT id FROM instagram_accounts WHERE id=$1 OR oauth_user_id=$1",
     [userId],
   );
   if (matches.rows.length) {
-    await db().query("UPDATE automations SET active=false");
-    await db().query("DELETE FROM instagram_accounts WHERE id=$1", [
+    await database.query("UPDATE automations SET active=false");
+    await database.query("DELETE FROM instagram_accounts WHERE id=$1", [
       matches.rows[0].id,
     ]);
+  }
   }
   const code = randomUUID();
   await db().query("INSERT INTO deletion_receipts(id) VALUES($1)", [code]);

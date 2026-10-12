@@ -4,6 +4,7 @@ import { extractComments } from "@/lib/domain";
 import { enqueueComment } from "@/lib/repository";
 import { processQueue } from "@/lib/worker";
 import { providerJson } from "@/lib/instagram";
+import { profileDatabases } from "@/lib/db";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 export async function GET(request: Request) {
@@ -40,10 +41,13 @@ export async function POST(request: Request) {
   }
   try {
     // Persist before acknowledgment. A failed DB write returns 503 so Meta can redeliver.
-    for (const event of extractComments(payload)) await enqueueComment(event);
+    const databases = profileDatabases();
+    for (const event of extractComments(payload)) {
+      for (const database of databases) await enqueueComment(event, database);
+    }
     after(async () => {
       try {
-        await processQueue();
+        await Promise.all(databases.map((database) => processQueue(database)));
       } catch {
         console.error("Webhook queue processing failed");
       }

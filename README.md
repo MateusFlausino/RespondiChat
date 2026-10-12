@@ -1,6 +1,6 @@
 # RespondiChat
 
-Painel pessoal para **@michellefmkt**: um comentário com uma palavra-chave em um post ou Reel gera uma resposta privada com os links dos produtos daquele post.
+Painéis pessoais separados para **@michellefmkt** e **@mf.luminarias3d**: um comentário com uma palavra-chave em um post ou Reel gera uma resposta privada com os links dos produtos daquele perfil.
 
 ## O que está implementado
 
@@ -64,7 +64,6 @@ O primeiro deploy pode ser feito sem credenciais Meta; o login indica configura�
 | `INSTAGRAM_APP_ID` / `INSTAGRAM_APP_SECRET` | Credenciais do produto Instagram Login, exibidas no painel Meta.                                                          |
 | `META_APP_SECRET`                           | Segredo do aplicativo Meta que assina os eventos do webhook. Não confunda com o segredo do produto Instagram.             |
 | `META_GRAPH_VERSION`                        | Versão da API, padrão `v25.0`. Confirme a versão suportada no painel Meta antes da conexão.                               |
-| `ALLOWED_INSTAGRAM_USERNAME`                | Perfil autorizado, padrão `michellefmkt`, sem `@`.                                                                        |
 | `PRIVACY_CONTACT`                           | Identificação e contato público do operador, usados nas páginas de privacidade e exclusão.                                |
 | `DEMO_MODE`                                 | Use `false` ou omita em produção.                                                                                         |
 
@@ -156,7 +155,9 @@ tests/                   testes de regras, segurança e integração
 Esta versão atende **uma conta de Instagram e um administrador**. Não implementa atendimento por IA, sequência de follow-up, múltiplos clientes, leitura de DMs recebidas, processamento de stories ou checkout. O envio começa a partir de comentários nos posts/Reels.
 # Acesso próprio da Michelle
 
-Mateus também pode ter um acesso pessoal: configure `MATEUS_PASSWORD_HASH` em Production, faça novo deploy e entre em `/mateus/login` com usuário `mateus`. Os três acessos trabalham no mesmo painel do perfil @michellefmkt. Não use `mateus` como `ADMIN_USERNAME` para evitar colisão entre credenciais.
+Os perfis são separados: `michelle` e o administrador usam @michellefmkt; `mateus` usa @mf.luminarias3d. O perfil da Michelle mantém os dados existentes em `public`. O primeiro acesso do Mateus inicializa um esquema PostgreSQL próprio (`mf_luminarias3d`) no mesmo banco, sem copiar nem excluir os dados da Michelle. Cada consulta fixa o esquema dentro de uma transação, incluindo em conexões Neon com pooling. Webhooks e cron processam cada perfil separadamente; a autorização OAuth fica vinculada ao login que iniciou a conexão. Não são necessárias novas credenciais da Meta para o segundo perfil, mas ele também deve autorizar o app e ter as permissões necessárias.
+
+Configure `MATEUS_PASSWORD_HASH` em Production, faça novo deploy e entre em `/mateus/login` com usuário `mateus` para conectar @mf.luminarias3d. Não use `mateus` como `ADMIN_USERNAME` para evitar colisão entre credenciais.
 
 O painel aceita dois acessos independentes para o mesmo perfil e suas automações: o administrador e a Michelle. Configure `MICHELLE_PASSWORD_HASH` em Production com um hash scrypt no mesmo formato de `ADMIN_PASSWORD_HASH` e faça um novo deploy. Ela entra em `/michelle/login`, com usuário `michelle` e sua própria senha, e usa **Conectar Instagram** nas configurações. A senha do painel é diferente da senha do Instagram; a autorização do perfil acontece somente na tela oficial da Meta.
 

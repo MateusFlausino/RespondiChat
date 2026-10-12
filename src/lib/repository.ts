@@ -34,6 +34,7 @@ export function ruleFromRow(row: RuleRow): Automation {
 }
 export async function readDashboard(
   database: Db = db(),
+  expectedUsername = "michellefmkt",
 ): Promise<Omit<DashboardData, "config">> {
   const [products, rules, deliveries, account, totals, days] =
     await Promise.all([
@@ -95,8 +96,7 @@ export async function readDashboard(
     account: {
       username:
         connected?.username ??
-        process.env.ALLOWED_INSTAGRAM_USERNAME ??
-        "michellefmkt",
+        expectedUsername,
       connected: !!connected,
       expiresAt: connected
         ? new Date(connected.expires_at).toISOString()

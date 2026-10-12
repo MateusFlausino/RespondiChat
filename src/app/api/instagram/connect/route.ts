@@ -5,12 +5,12 @@ import { authorizationUrl } from "@/lib/instagram";
 import { secret, sign } from "@/lib/security";
 export async function GET() {
   try {
-    await requireUser();
+    const username = await requireUser();
     const state = randomBytes(32).toString("hex");
     (await cookies()).set(
       "respondi_oauth",
       sign(
-        { state, purpose: "oauth", exp: Date.now() + 10 * 60_000 },
+        { state, user: username, purpose: "oauth", exp: Date.now() + 10 * 60_000 },
         secret("SESSION_SECRET"),
       ),
       {
