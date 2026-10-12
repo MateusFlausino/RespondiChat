@@ -194,6 +194,15 @@ export default function Dashboard({
     const params = new URLSearchParams(window.location.search);
     const connection = params.get("connection");
     if (!connection) return;
+    const failureMessages: Record<string, string> = {
+      session: "Sua sessão do painel expirou. Entre novamente e inicie a conexão.",
+      short_token: "O Instagram não confirmou a autorização. Confira o aceite de testadora e as credenciais do aplicativo Meta.",
+      long_token: "Não foi possível concluir a autorização do Instagram. O responsável pelo painel deve revisar as credenciais do aplicativo Meta.",
+      profile: "Não foi possível consultar seu perfil. Confira a permissão de acesso aos dados básicos do Instagram.",
+      save_account: "Não foi possível salvar a conexão no painel. O responsável deve conferir o banco e a configuração de criptografia.",
+      subscribe: "Seu perfil foi autorizado, mas os eventos de comentários não foram ativados. Confira a permissão de comentários e o webhook na Meta.",
+      save_subscription: "Os eventos foram ativados, mas o painel não conseguiu salvar essa confirmação. Tente conectar novamente.",
+    };
     const messages: Record<string, string> = {
       success: "Instagram conectado. Sincronize seus posts para começar.",
       wrong_profile: "Autorize o perfil @michellefmkt na tela do Instagram.",
@@ -201,7 +210,7 @@ export default function Dashboard({
       invalid_state: "A autorização expirou. Inicie a conexão novamente.",
       disconnect_first: "Desconecte a conta anterior antes de trocar o perfil.",
       failed:
-        "A conexão não foi concluída. Confira as permissões e os webhooks no aplicativo Meta.",
+        failureMessages[params.get("stage") ?? ""] ?? "A conexão não foi concluída. O responsável pelo painel deve conferir o diagnóstico da autorização.",
       missing_code: "O Instagram não retornou o código de autorização.",
     };
     notify(

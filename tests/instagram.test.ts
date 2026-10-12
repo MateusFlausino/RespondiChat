@@ -7,7 +7,25 @@ import {
   privateReply,
   providerJson,
   singleObject,
+  InstagramAuthorizationError,
 } from "../src/lib/instagram";
+test("OAuth identifica a etapa e o código sem expor dados do provedor", async () => {
+  const original = globalThis.fetch;
+  process.env.APP_URL = "https://example.com";
+  process.env.INSTAGRAM_APP_ID = "123";
+  process.env.INSTAGRAM_APP_SECRET = "private-secret";
+  try {
+    for (const stage of ["short_token", "long_token", "profile"] as const) {
+      globalThis.fetch = async (input) => {
+        const url = String(input);
+        const current = url.includes("api.instagram.com") ? "short_token" : url.includes("/access_token") ? "long_token" : "profile";
+        if (current === stage) return Response.json({ error: { code: 190, message: "private-secret private-token" } }, { status: 400 });
+        return Response.json(current === "short_token" ? { access_token: "private-token", user_id: "123" } : { access_token: "long", expires_in: 5184000 });
+      };
+      await assert.rejects(() => exchangeCode("private-auth-code"), (error) => error instanceof InstagramAuthorizationError && error.stage === stage && error.code === 190 && error.status === 400 && !error.message.includes("private"));
+    }
+  } finally { globalThis.fetch = original; }
+});
 test("respostas preservam identificadores numéricos grandes", () => {
   const value = providerJson(
     '{"user_id":17841400000000001,"expires_in":5184000}',

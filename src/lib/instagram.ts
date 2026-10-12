@@ -37,6 +37,11 @@ export class MetaError extends Error {
     super(`Meta retornou código ${code} (HTTP ${status}).`);
   }
 }
+export class InstagramAuthorizationError extends Error {
+  constructor(public stage: "short_token" | "long_token" | "profile", public code: number, public status: number) {
+    super(`Instagram authorization failed at ${stage} (HTTP ${status}, code ${code}).`);
+  }
+}
 export function providerJson(text: string): unknown {
   // Preserve large numeric identifiers, which cannot safely pass through a JS Number.
   const parse = JSON.parse as (
@@ -142,8 +147,10 @@ export async function exchangeCode(
   const short = singleObject<Short>(
     providerJson(await response.text()) as Short | { data: Short[] },
   );
-  if (!response.ok || !short.access_token)
-    throw new Error("Falha na autorização do Instagram.");
+  if (!response.ok || !short.access_token) {
+    const failure = short as Short & { code?: number; error?: { code?: number } };
+    throw new InstagramAuthorizationError("short_token", Number(failure.error?.code ?? failure.code) || 0, response.status);
+  }
   const url = new URL("https://graph.instagram.com/access_token");
   url.search = new URLSearchParams({
     grant_type: "ig_exchange_token",
@@ -157,13 +164,16 @@ export async function exchangeCode(
   const long = (await longResponse.json()) as {
     access_token?: string;
     expires_in?: number;
+    error?: { code?: number };
   };
   if (!longResponse.ok || !long.access_token || !long.expires_in)
-    throw new Error("Não foi possível obter a autorização de longa duração.");
+    throw new InstagramAuthorizationError("long_token", Number(long.error?.code) || 0, longResponse.status);
   type Profile = { id?: string; user_id: string; username: string };
   const profile = singleObject<Profile>(
     await graph<Profile | { data: Profile[] }>("me", long.access_token, {
       params: { fields: "user_id,username" },
+    }).catch((error: unknown) => {
+      throw new InstagramAuthorizationError("profile", error instanceof MetaError ? error.code : 0, error instanceof MetaError ? error.status : 0);
     }),
   );
   const accountId = String(profile.user_id ?? profile.id ?? "");

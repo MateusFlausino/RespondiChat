@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { appUrl, requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { exchangeCode, subscribe } from "@/lib/instagram";
+import { exchangeCode, subscribe, InstagramAuthorizationError, MetaError } from "@/lib/instagram";
 import { encrypt, equal, secret, verify } from "@/lib/security";
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -10,6 +10,7 @@ export async function GET(request: Request) {
   const jar = await cookies();
   const token = jar.get("respondi_oauth")?.value;
   jar.delete("respondi_oauth");
+  let stage = "session";
   try {
     await requireUser();
     const url = new URL(request.url);
@@ -28,12 +29,14 @@ export async function GET(request: Request) {
     const code = url.searchParams.get("code");
     if (!code)
       return Response.redirect(`${origin}/?connection=missing_code`, 302);
+    stage = "exchange";
     const profile = await exchangeCode(code.replace(/#_$/, ""));
     const allowed = (process.env.ALLOWED_INSTAGRAM_USERNAME ?? "michellefmkt")
       .replace(/^@/, "")
       .toLowerCase();
     if (profile.username.toLowerCase() !== allowed)
       return Response.redirect(`${origin}/?connection=wrong_profile`, 302);
+    stage = "save_account";
     const existing = await db().query<{ id: string }>(
       "SELECT id FROM instagram_accounts LIMIT 1",
     );
@@ -51,14 +54,26 @@ export async function GET(request: Request) {
         profile.oauthUserId,
       ],
     );
+    stage = "subscribe";
     await subscribe(profile.accountId, profile.token);
+    stage = "save_subscription";
     await db().query(
       "UPDATE instagram_accounts SET subscribed=true WHERE id=$1",
       [profile.accountId],
     );
     return Response.redirect(`${origin}/?connection=success`, 302);
-  } catch {
-    console.error("Instagram authorization failed");
-    return Response.redirect(`${origin}/?connection=failed`, 302);
+  } catch (error) {
+    if (error instanceof InstagramAuthorizationError) stage = error.stage;
+    // Log only fixed stage names and numeric codes; never provider bodies, URLs, codes or tokens.
+    const provider = error instanceof InstagramAuthorizationError || error instanceof MetaError ? error : null;
+    console.error("Instagram authorization failed", {
+      stage,
+      providerCode: provider?.code ?? 0,
+      providerStatus: provider?.status ?? 0,
+    });
+    const target = new URL(origin);
+    target.searchParams.set("connection", "failed");
+    target.searchParams.set("stage", stage);
+    return Response.redirect(target, 302);
   }
 }
