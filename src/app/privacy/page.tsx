@@ -1,6 +1,7 @@
+import { legalContact } from "@/lib/legal-contact";
 export const dynamic = "force-dynamic";
 export default function Privacy() {
-  const contact = process.env.PRIVACY_CONTACT;
+  const contact = legalContact();
   return (
     <main className="legal">
       <a href="/">← RespondiChat</a>
@@ -43,8 +44,7 @@ export default function Privacy() {
       </p>
       <h2>Operador e contato</h2>
       <p>
-        {contact ||
-          "O operador ainda precisa configurar sua identificação e contato na variável PRIVACY_CONTACT antes de conectar uma conta em produção ou enviar o aplicativo para análise."}
+        {contact}
       </p>
     </main>
   );

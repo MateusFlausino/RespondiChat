@@ -1,3 +1,4 @@
+import { legalContact } from "@/lib/legal-contact";
 export const dynamic = "force-dynamic";
 export default function DataDeletion() {
   return (
@@ -22,8 +23,7 @@ export default function DataDeletion() {
       </p>
       <p>
         Contato:{" "}
-        {process.env.PRIVACY_CONTACT ||
-          "o operador deve configurar PRIVACY_CONTACT antes de usar o sistema em produção."}
+        {legalContact()}
       </p>
     </main>
   );
